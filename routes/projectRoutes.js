@@ -29,11 +29,20 @@ router.get("/get", async (req, res) => {
 });
 
 router.put("/editproject", async (req, res) => {
-	let savedProject = Project.findOne({ _id: req.body.projectid });
-	savedProject.projectTitle = req.body.projectTitle;
-	savedProject.projectDescription = req.body.projectDescription;
-	await savedProject.save();
-	res.send(savedProject);
+	Project.findByIdAndUpdate(
+		{ _id: req.body.projectid },
+		{
+			projectTitle: req.body.projectTitle,
+			projectDescription: req.body.projectDescription,
+		},
+		function (err, result) {
+			if (err) {
+				res.send(err);
+			} else {
+				res.send(result);
+			}
+		}
+	);
 });
 
 router.post("/adduser", async (req, res) => {
