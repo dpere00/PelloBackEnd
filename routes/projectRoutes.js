@@ -1,4 +1,5 @@
 const Project = require("../model/Project");
+const Buckets = require("../model/Buckets");
 const router = require("express").Router();
 
 router.post("/add", async (req, res) => {
@@ -8,7 +9,8 @@ router.post("/add", async (req, res) => {
 	const project = new Project({
 		projectTitle: req.body.projectTitle,
 		description: req.body.description,
-		userList: [req.body.currentUser],
+		userList: [req.body.currentUser], //id of the current user
+		buckets: null,
 	});
 	try {
 		const savedProject = await project.save();
@@ -45,13 +47,57 @@ router.put("/editproject", async (req, res) => {
 	);
 });
 
+//Add user to a project
 router.post("/adduser", async (req, res) => {
-	let workingProject = await Project.findOne({ _id: projectid });
+	let workingProject = await Project.findOne({ _id: req.body.projectid });
 	req.body.user.forEach((userid) => {
-		workingProject.userList = workingProject.userList.push(userid);
+		workingProject.userList.push(userid);
 	});
-	await workingProject.save();
-	res.send(workingProject);
+	const savedProject = await workingProject.save();
+	res.send(savedProject);
+});
+
+//Bucket functionality
+router.post("/addbucket", async (req, res) => {
+	let workingProject = await Project.findOne({ _id: req.body.projectid });
+	const newBucket = new Buckets({
+		name: req.body.bucketName,
+	});
+	//buckets start at null, check if no buckets exist
+	if (workingProject.buckets == null) {
+		workingProject.buckets = [newBucket];
+	} else {
+		workingProject.buckets.push(newBucket);
+	}
+	const savedProject = await workingProject.save();
+	res.send(savedProject);
+});
+
+router.post("/addtask", async (req, res) => {
+	let workingProject = await Project.findOne({ _id: req.body.projectid });
+	console.log(workingProject.buckets[0].name);
+	if (workingProject.buckets == null) {
+		res.status(500).send("Bucket must be created first");
+	}
+	let bucketExists = false;
+	let bucketIndex = 0;
+	workingProject.buckets.forEach(async (bucket, index) => {
+		if (bucket.name == req.body.bucket) {
+			bucketIndex = index;
+			bucketExists = true;
+			const newTask = {
+				title: req.body.taskTitle,
+				usersAssgn: req.body.assignedUser,
+				status: req.body.status,
+			};
+			workingProject.buckets[bucketIndex].tasks.push(newTask);
+			const savedProject = await workingProject.save();
+			res.send(savedProject);
+		}
+	});
+	if (!bucketExists) {
+		res.status(500).send("Bucket does not exist");
+	}
 });
 
 module.exports = router;
