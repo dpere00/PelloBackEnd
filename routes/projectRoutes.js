@@ -1,5 +1,6 @@
 const Project = require("../model/Project");
 const Buckets = require("../model/Buckets");
+const User = require("../model/User");
 const router = require("express").Router();
 
 router.post("/add", async (req, res) => {
@@ -50,8 +51,17 @@ router.put("/editproject", async (req, res) => {
 //Add user to a project
 router.post("/adduser", async (req, res) => {
 	let workingProject = await Project.findOne({ _id: req.body.projectid });
-	req.body.user.forEach((userid) => {
-		workingProject.userList.push(userid);
+	//adds the user to the project's userList
+	req.body.user.forEach(async (userid) => {
+		const workingUser = await User.findOne({ _id: userid });
+		if (!workingProject.userList.includes(userid)) {
+			workingProject.userList.push(userid);
+		}
+		//push the userid to the project userList
+		if (!workingUser.projects.includes(req.body.projectid)) {
+			workingUser.projects.push(req.body.projectid);
+			await workingUser.save();
+		}
 	});
 	const savedProject = await workingProject.save();
 	res.send(savedProject);
