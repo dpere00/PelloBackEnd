@@ -22,13 +22,23 @@ router.post("/add", async (req, res) => {
 	}
 });
 
-router.get("/get", async (req, res) => {
+router.get("/getproject", async (req, res) => {
 	//query param for the project id
 	let projectid = req.query.projectid;
 	const projectExist = await Project.findOne({ _id: projectid });
 	if (!projectExist) return res.status(400).send("Project does not exist");
 
 	res.send(projectExist);
+});
+
+router.get("/getusersprojects", async (req, res) => {
+	//query param for the project id
+	let userid = req.query.userid;
+	const userExist = await User.findOne({ _id: userid });
+	if (!userExist) return res.status(400).send("User does not exist");
+	if (userExist.projects == null)
+		return res.status(400).send("User has no projects");
+	res.send(userExist.projects);
 });
 
 router.put("/editproject", async (req, res) => {
@@ -107,6 +117,53 @@ router.post("/addtask", async (req, res) => {
 	});
 	if (!bucketExists) {
 		res.status(500).send("Bucket does not exist");
+	}
+});
+
+//Params: projectid, name of bucket, taskid, newStatus for task
+router.post("/edittaskstatus", async (req, res) => {
+	try {
+		let workingProject = await Project.findOne({ _id: req.body.projectid });
+
+		let bucketExists = false;
+		let bucketIndex = 0;
+		workingProject.buckets.forEach(async (bucket, index) => {
+			if (bucket.name == req.body.bucket) {
+				bucketIndex = index;
+				bucketExists = true;
+				workingProject.buckets[bucketIndex].tasks.forEach(async (task) => {
+					if (task._id == req.body.taskid) {
+						task.status = req.body.newStatus;
+					}
+				});
+				const savedProject = await workingProject.save();
+				res.send(savedProject);
+			}
+		});
+	} catch (e) {
+		console.log(e);
+	}
+});
+
+//Edit the name of the bucket
+router.post("/editbucketname", async (req, res) => {
+	try {
+		let workingProject = await Project.findOne({ _id: req.body.projectid });
+
+		//buckets start at null, check if no buckets exist
+		if (workingProject.buckets == null) {
+			res.status(500).send("Bucket does not exist");
+		}
+		workingProject.buckets.forEach(async (bucket, index) => {
+			if (bucket.name == req.body.bucket) {
+				bucket.name = req.body.newBucketName;
+			}
+		});
+
+		const savedProject = await workingProject.save();
+		res.send(savedProject);
+	} catch (e) {
+		throw e;
 	}
 });
 
