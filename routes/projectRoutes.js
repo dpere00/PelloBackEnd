@@ -33,12 +33,21 @@ router.get("/getproject", async (req, res) => {
 
 router.get("/getusersprojects", async (req, res) => {
 	//query param for the project id
-	let userid = req.query.userid;
+	let userid = req.body.userid;
 	const userExist = await User.findOne({ _id: userid });
+	console.log(userExist);
 	if (!userExist) return res.status(400).send("User does not exist");
 	if (userExist.projects == null)
 		return res.status(400).send("User has no projects");
-	res.send(userExist.projects);
+	if (userExist.projects.length == 1) {
+		return res.send(await Project.findOne({ _id: userExist.projects[0] }));
+	}
+	let projectList = [];
+	userExist.projects.forEach(async (projectid) => {
+		const workingProject = await Project.findOne({ _id: projectid });
+		projectList.push(workingProject);
+	});
+	res.send(projectList);
 });
 
 router.put("/editproject", async (req, res) => {
